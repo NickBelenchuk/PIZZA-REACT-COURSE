@@ -22,13 +22,15 @@ export const Home = () => {
   const { categoryId, sort, currentPage } = useSelector((state) => state.filter);
   const [pizzas, setPizzas] = useState([]);
   const [loadSkeleton, setLoadSkeleton] = useState(true);
+  const { inputValue } = useContext(SearchContext);
+
+
+  const PIZZAS_API = 'https://628d2158a3fd714fd03fbdba.mockapi.io/pizzas';
 
   const onClickCategory = (id) => {
     dispatch(setCategoryId(id));
   };
 
-  const { inputValue } = useContext(SearchContext);
-  const PIZZAS_API = 'https://628d2158a3fd714fd03fbdba.mockapi.io/pizzas';
 
   const onChangePage = (num) => {
     dispatch(setCurrentPage(num));
@@ -49,10 +51,22 @@ export const Home = () => {
         setPizzas(res.data);
         setLoadSkeleton(false);
       });
-
-    window.scrollTo(0, 0);
   };
 
+  // Якщо змінили параметри і відбувся перший рендер, то:
+  useEffect(() => {
+    if (isMounted.current) {
+      const queryString = qs.stringify({
+        sortProperty: sort.sortProperty,
+        categoryId,
+        currentPage,
+      });
+      navigate(`?${queryString}`);
+    }
+    isMounted.current = true;
+  }, [categoryId, sort.sortProperty, inputValue, currentPage]);
+
+  // Якщо був перший рендер, то перевіряємо URL- параметри і зберігаємо в REDUX
   useEffect(() => {
     if (window.location.search) {
       const params = qs.parse(window.location.search.substring(1));
@@ -66,32 +80,17 @@ export const Home = () => {
       );
       isSearch.current = true;
     }
-  }, []);
+  }, [categoryId, sort.sortProperty, inputValue, currentPage]);
 
+  //Якщо був перший рендер, то робимо запит піц
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    if (isSearch.current) {
-      fetchPizzas();
-    }
-
+    fetchPizzas();
     isSearch.current = false;
   }, [categoryId, sort.sortProperty, inputValue, currentPage]);
 
-  useEffect(() => {
-    if (isMounted.current){
-      const queryString = qs.stringify({
-        sortProperty: sort.sortProperty,
-        categoryId,
-        currentPage,
-      });
-      navigate(`?${queryString}`);
-    }
-    isMounted.current = true
-  }, [categoryId, sort.sortProperty, currentPage]);
-
   const pizzaSearch = pizzas.map((items) => <PizzaBlock key={items.id} {...items} />);
-
   const skeletonDownload = [...new Array(8)].map((_, index) => <Skeleton key={index} />);
 
   return (
